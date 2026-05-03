@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0b0f" />
+    <title>StreamVault — Watch anywhere</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/main.css" />
+  </head>
+  <body>
+    <div class="scroll-progress" id="scroll-progress" role="presentation" aria-hidden="true"></div>
+    <div class="global-error" id="global-error" role="alert" hidden></div>
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <header class="nav" id="nav" aria-label="Main">
+      <div class="nav__inner">
+        <a href="#" class="nav__logo" data-action="home" aria-label="StreamVault home">
+          <span class="nav__logo-mark">SV</span>
+          <span class="nav__logo-text">StreamVault</span>
+        </a>
+        <div class="nav__actions">
+          <button
+            type="button"
+            class="nav__wl-jump"
+            id="nav-watchlist-jump"
+            aria-label="My Watchlist"
+            hidden
+          >
+            <svg class="nav__wl-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <span class="nav__wl-count" id="watchlist-count-badge" aria-hidden="true">0</span>
+          </button>
+          <div class="nav__search-wrap" id="nav-search-wrap">
+            <button
+              type="button"
+              class="nav__search-trigger"
+              id="nav-search-trigger"
+              aria-label="Open search"
+              aria-controls="search-experience"
+              aria-expanded="false"
+            >
+              <span class="nav__search-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3-3" />
+                </svg>
+              </span>
+              <span class="nav__search-trigger-text">Titles, people, genres</span>
+            </button>
+          </div>
+          <div class="nav__profile" data-dropdown>
+            <button
+              type="button"
+              class="nav__profile-trigger"
+              id="profile-trigger"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-controls="profile-listbox"
+            >
+              <span class="nav__avatar" id="profile-avatar" aria-hidden="true">P</span>
+              <span class="nav__profile-name" id="profile-name">Profile</span>
+              <svg class="nav__chevron" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M7 10l5 5 5-5z" />
+              </svg>
+            </button>
+            <ul class="nav__profile-menu" id="profile-listbox" role="listbox" hidden></ul>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div
+      id="search-experience"
+      class="search-xp"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search"
+      hidden
+    >
+      <div class="search-xp__backdrop" data-search-xp-close tabindex="-1" aria-hidden="true"></div>
+      <div class="search-xp__shell">
+        <header class="search-xp__header">
+          <button type="button" class="search-xp__back" id="search-xp-back" aria-label="Back to home">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+            </svg>
+          </button>
+          <div class="search-xp__field">
+            <label class="visually-hidden" for="search-input">Search movies and shows</label>
+            <input
+              type="search"
+              id="search-input"
+              class="search-xp__input"
+              placeholder="Titles, people, genres"
+              autocomplete="off"
+              spellcheck="false"
+              aria-autocomplete="list"
+              aria-controls="search-panel-inner"
+            />
+            <span class="search-xp__field-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3-3" />
+              </svg>
+            </span>
+          </div>
+        </header>
+        <div class="search-xp__body-outer">
+          <div id="search-panel-inner" class="search-xp__body search-panel__inner"></div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="entity-layer"
+      class="entity-layer"
+      hidden
+      aria-hidden="true"
+      aria-label="Details"
+    >
+      <div id="entity-root" class="entity-root"></div>
+    </div>
+
+    <main id="main-content">
+      <section
+        class="hero"
+        id="hero"
+        aria-labelledby="hero-title"
+        tabindex="0"
+        aria-roledescription="carousel"
+      >
+        <div class="hero__bg-stack" aria-hidden="true">
+          <div class="hero__bg-layer" id="hero-bg-0"></div>
+          <div class="hero__bg-layer" id="hero-bg-1"></div>
+        </div>
+        <div class="hero__gradient" aria-hidden="true"></div>
+        <div class="hero__chrome">
+          <button
+            type="button"
+            class="hero__nav hero__nav--prev"
+            id="hero-prev"
+            aria-label="Previous featured title"
+            hidden
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="hero__nav hero__nav--next"
+            id="hero-next"
+            aria-label="Next featured title"
+            hidden
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+            </svg>
+          </button>
+        </div>
+        <div class="hero__content">
+          <div class="hero__meta" id="hero-meta">
+            <span class="hero__badge" id="hero-badge">Featured</span>
+            <h1 class="hero__title" id="hero-title">Loading…</h1>
+            <p class="hero__desc" id="hero-desc"></p>
+            <div class="hero__actions">
+              <button type="button" class="btn btn--primary" id="hero-play" data-action="play-hero">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Play trailer
+              </button>
+              <button type="button" class="btn btn--ghost btn--hero-wl" id="hero-watchlist" data-action="toggle-watchlist-hero">
+                <span id="hero-watchlist-label">+ Watchlist</span>
+              </button>
+            </div>
+            <div class="hero__carousel-ui" id="hero-carousel-ui" hidden>
+              <div class="hero__dots" id="hero-dots" role="tablist" aria-label="Featured slides"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="content" id="content-root">
+        <!-- Rows injected by JS -->
+      </div>
+    </main>
+
+    <div
+      class="detail-modal"
+      id="detail-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="detail-modal-title"
+      hidden
+    >
+      <div class="detail-modal__backdrop" data-close-detail></div>
+      <div class="detail-modal__panel">
+        <button
+          type="button"
+          class="detail-modal__close"
+          id="detail-modal-close"
+          data-close-detail
+          aria-label="Close details"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+        <h2 class="detail-modal__title" id="detail-modal-title">Title</h2>
+        <p class="detail-modal__meta" id="detail-modal-meta"></p>
+        <p class="detail-modal__body" id="detail-modal-body"></p>
+      </div>
+    </div>
+
+    <div
+      class="modal"
+      id="trailer-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      hidden
+    >
+      <div class="modal__backdrop" data-close-modal></div>
+      <div class="modal__frame-wrap">
+        <button type="button" class="modal__close" id="modal-close" aria-label="Close trailer" data-close-modal>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+        <h2 class="visually-hidden" id="modal-title">Trailer</h2>
+        <div class="modal__frame" id="modal-frame"></div>
+      </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

@@ -13,6 +13,11 @@
   --shadow-card: 0 16px 48px rgba(0, 0, 0, 0.55);
   --nav-height: 72px;
   --pad-x: clamp(24px, 4vw, 40px);
+  /* Hero: reserved bands at edges so carousel arrows never fight title/actions */
+  --hero-safe-left: clamp(80px, 9vw, 120px);
+  --hero-safe-right: clamp(72px, 8vw, 112px);
+  --hero-content-pl: clamp(104px, calc(var(--hero-safe-left) + 28px), 144px);
+  --hero-content-pr: clamp(88px, calc(var(--hero-safe-right) + 24px), 128px);
   --row-gap: 12px;
   --transition-fast: 0.15s ease;
   --transition-smooth: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -827,24 +832,28 @@ button {
   background: rgba(229, 9, 20, 0.15);
 }
 
-/* —— Hero —— */
+/* —— Hero ——
+   Fixed block height: content is absolutely positioned so slide copy/images never reflow layout.
+   Left/right safe zones (--hero-safe-*) keep copy & actions out of the carousel control column. */
 .hero {
   position: relative;
-  min-height: clamp(420px, 72vh, 780px);
+  /* Single resolved height: ~85vh feel, ≥600px when space allows, capped for ultra-tall screens, never above viewport */
+  height: min(900px, max(min(85vh, 92vh), min(600px, 92vh)));
   margin-top: calc(-1 * var(--nav-height));
   padding-top: calc(var(--nav-height) + 32px);
-  padding-bottom: 80px;
-  padding-left: var(--pad-x);
-  padding-right: var(--pad-x);
-  display: flex;
-  align-items: flex-end;
+  padding-bottom: 0;
+  padding-left: 0;
+  padding-right: 0;
   overflow: hidden;
+  isolation: isolate;
 }
 
 .hero__bg-stack {
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .hero__bg-layer {
@@ -852,23 +861,53 @@ button {
   inset: 0;
   background-color: #1a1a22;
   background-size: cover;
-  background-position: center top;
+  background-position: center center;
   background-repeat: no-repeat;
   opacity: 0;
   transition: opacity 0.55s ease-in-out;
-  will-change: opacity;
+  will-change: opacity, transform;
   pointer-events: none;
+  transform-origin: center center;
 }
 
 .hero__bg-layer.is-visible {
   opacity: 1;
 }
 
-/* —— Hero side nav + dots —— */
+/* Subtle Ken Burns on active slide (disabled when user prefers reduced motion) */
+@media (prefers-reduced-motion: no-preference) {
+  .hero__bg-layer.is-visible:not(.is-fallback) {
+    animation: heroKenBurns 14s ease-out forwards;
+  }
+}
+
+@keyframes heroKenBurns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+
+/* Missing / invalid backdrop: stable focal gradient (no network image required) */
+.hero__bg-layer.is-fallback {
+  background-image: radial-gradient(
+      ellipse 120% 90% at 62% 18%,
+      rgba(229, 9, 20, 0.38) 0%,
+      transparent 58%
+    ),
+    linear-gradient(168deg, #16161f 0%, #0b0b0f 42%, #1a1524 100%);
+  animation: none;
+  transform: none;
+}
+
+/* —— Hero side nav + dots ——
+   Chrome sits above text/content so arrows stay visible + clickable (stacking was broken: content was z-index 3, chrome was 1). */
 .hero__chrome {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 10;
   pointer-events: none;
 }
 
@@ -881,23 +920,55 @@ button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: #fff;
   pointer-events: auto;
-  transition: background var(--transition-fast), transform var(--transition-fast),
-    opacity var(--transition-fast);
-  z-index: 2;
+  cursor: pointer;
+  isolation: isolate;
+  opacity: 0.94;
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 0, 0, 0.25) inset;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.25s ease,
+    transform var(--transition-fast),
+    opacity 0.25s ease,
+    filter 0.25s ease;
+  z-index: 11;
+}
+
+.hero__nav svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
 }
 
 .hero__nav:hover {
-  background: rgba(0, 0, 0, 0.65);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-50%) scale(1.04);
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.72);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 4px 22px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 0 28px rgba(255, 255, 255, 0.12);
+  transform: translateY(-50%) scale(1.06);
+  filter: brightness(1.06);
 }
 
 .hero__nav:active {
   transform: translateY(-50%) scale(0.98);
+}
+
+.hero__nav:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.95);
+  outline-offset: 3px;
+}
+
+.hero__nav:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .hero__nav:disabled,
@@ -906,11 +977,11 @@ button {
 }
 
 .hero__nav--prev {
-  left: max(12px, var(--pad-x));
+  left: clamp(20px, var(--pad-x), 40px);
 }
 
 .hero__nav--next {
-  right: max(12px, var(--pad-x));
+  right: clamp(20px, var(--pad-x), 40px);
 }
 
 .hero__carousel-ui {
@@ -951,6 +1022,7 @@ button {
 .hero__gradient {
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: linear-gradient(
       90deg,
       rgba(11, 11, 15, 0.97) 0%,
@@ -964,15 +1036,27 @@ button {
 }
 
 .hero__content {
-  position: relative;
+  position: absolute;
+  /* Copy column sits in the main band between nav safe zones (no overlap with chevrons) */
+  left: var(--hero-content-pl);
+  right: auto;
+  bottom: 0;
   z-index: 3;
+  box-sizing: border-box;
+  width: min(
+    640px,
+    calc(100% - var(--hero-content-pl) - max(var(--pad-x), var(--hero-content-pr)))
+  );
   max-width: 640px;
+  padding: 0 0 80px;
+  pointer-events: none;
 }
 
 .hero__meta {
+  pointer-events: auto;
   opacity: 0;
   transform: translateY(12px);
-  transition: opacity 0.6s ease 0.1s, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
+  transition: opacity 0.5s ease 0.08s, transform 0.55s cubic-bezier(0.4, 0, 0.2, 1) 0.08s;
 }
 
 .hero__meta.is-ready {
@@ -981,13 +1065,17 @@ button {
 }
 
 .hero__badge {
-  display: inline-block;
+  display: block;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent);
   margin-bottom: 12px;
+  min-height: 1.2em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hero__title {
@@ -996,6 +1084,11 @@ button {
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.03em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: break-word;
 }
 
 .hero__desc {
@@ -1004,9 +1097,11 @@ button {
   line-height: 1.55;
   color: var(--text-muted);
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Reserve vertical space for three lines to avoid micro-shifts when text length varies */
+  min-height: calc(1.55em * 3);
 }
 
 .hero__actions {
@@ -1907,17 +2002,24 @@ button {
 }
 
 @media (max-width: 640px) {
+  :root {
+    --hero-safe-left: clamp(56px, 15vw, 88px);
+    --hero-safe-right: clamp(52px, 13vw, 80px);
+    --hero-content-pl: clamp(72px, calc(var(--hero-safe-left) + 18px), 104px);
+    --hero-content-pr: clamp(64px, calc(var(--hero-safe-right) + 14px), 92px);
+  }
+
   .hero__nav {
     width: 40px;
     height: 40px;
   }
 
   .hero__nav--prev {
-    left: 8px;
+    left: max(12px, env(safe-area-inset-left, 0px));
   }
 
   .hero__nav--next {
-    right: 8px;
+    right: max(12px, env(safe-area-inset-right, 0px));
   }
 
   .nav__logo-text {

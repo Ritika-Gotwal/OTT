@@ -251,8 +251,13 @@ function applyHeroText(movie, { animate = true } = {}) {
 
 function applyLayerBg(el, url) {
   if (!el) return;
-  if (url) el.style.backgroundImage = `url("${url}")`;
-  else el.style.backgroundImage = "none";
+  if (url) {
+    el.style.backgroundImage = `url("${url}")`;
+    el.classList.remove("is-fallback");
+  } else {
+    el.style.backgroundImage = "none";
+    el.classList.add("is-fallback");
+  }
 }
 
 /**

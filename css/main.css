@@ -670,6 +670,12 @@ button {
   transition: transform var(--transition-fast);
 }
 
+.person-card *,
+.person-card *::before,
+.person-card *::after {
+  cursor: pointer;
+}
+
 .person-card:hover {
   transform: translateY(-2px);
 }
@@ -1176,6 +1182,7 @@ button {
   padding: 0 var(--pad-x) 80px;
   max-width: 1920px;
   margin: 0 auto;
+  overflow: visible;
 }
 
 /* Fixed toast — visible above entity/search overlays (main may be inert / covered) */
@@ -1245,6 +1252,7 @@ button {
   position: relative;
   margin: 0 calc(-1 * var(--pad-x));
   padding: 20px var(--pad-x) 48px;
+  overflow: visible;
 }
 
 /* Hidden scrollbar — all browsers (Netflix-style clean rails) */
@@ -1252,7 +1260,7 @@ button {
   display: flex;
   gap: var(--row-gap);
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
   scroll-padding-inline: var(--pad-x);
@@ -1276,12 +1284,12 @@ button {
   border-radius: var(--radius-sm);
 }
 
-/* Row navigation chevrons — fade in on hover (fine pointer); visible on touch */
+/* Row navigation chevrons — above mini-hero float (60), below modals / nav */
 .row__nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 4;
+  z-index: 62;
   width: 42px;
   height: 42px;
   border-radius: 50%;
@@ -1341,8 +1349,11 @@ button {
   right: max(4px, calc(var(--pad-x) - 12px));
 }
 
-.row__track-wrap.is-scrollable:hover .card:not(.card--elite-active) {
-  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.55);
+/* In-flow spacer while a card is fixed-expanded (prevents row reflow) */
+.card-elite-slot {
+  flex: 0 0 auto;
+  pointer-events: none;
+  visibility: hidden;
 }
 
 /* —— Cards (elite hover / inline preview) —— */
@@ -1358,10 +1369,18 @@ button {
   background: var(--bg-elevated);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
   transition:
-    transform 0.38s var(--elite-ease),
-    box-shadow 0.38s var(--elite-ease);
+    transform 0.32s var(--elite-ease),
+    box-shadow 0.32s var(--elite-ease);
   outline: none;
   isolation: isolate;
+  cursor: pointer;
+}
+
+/* Same pointer over poster, trailer iframe stack, scrims, and copy (no dead zones / default I-beam) */
+.card *,
+.card *::before,
+.card *::after {
+  cursor: pointer;
 }
 
 .card:focus-visible {
@@ -1373,10 +1392,94 @@ button {
   z-index: 6;
 }
 
-.card--elite-active {
+/* Fallback: small scale if float JS path skipped */
+.card--elite-active:not(.card--elite-float) {
   transform: scale(1.14) translateY(-6px);
   z-index: 25;
   box-shadow: 0 22px 56px rgba(0, 0, 0, 0.75);
+}
+
+/* Mini–hero: explicit size (~30% hero width), fixed layer, no row reflow */
+.card--elite-active.card--elite-float {
+  --elite-media-fr: 0.65;
+  --elite-content-fr: 0.35;
+  position: fixed;
+  left: var(--elite-float-left, 0);
+  top: var(--elite-float-top, 0);
+  width: var(--elite-float-w, 400px);
+  height: var(--elite-float-h, 600px);
+  right: auto;
+  bottom: auto;
+  max-width: none;
+  aspect-ratio: unset;
+  transform: none;
+  z-index: 60;
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 40px 90px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 65fr) minmax(0, 35fr);
+  overflow: hidden;
+  transition:
+    left 0.32s var(--elite-ease),
+    top 0.32s var(--elite-ease),
+    width 0.32s var(--elite-ease),
+    height 0.32s var(--elite-ease),
+    box-shadow 0.32s var(--elite-ease);
+}
+
+/* Media (poster / trailer) = top row; info = bottom row */
+.card--elite-float .card__surface {
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+  align-self: stretch;
+  min-height: 0;
+  width: 100%;
+  inset: auto;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.card--elite-float .card__poster-layer,
+.card--elite-float .card__preview-dock {
+  border-radius: inherit;
+}
+
+.card--elite-float .card__preview-chrome {
+  left: 10px;
+  right: 10px;
+  top: 10px;
+  bottom: auto;
+}
+
+.card--elite-float .card__preview-scrim {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.04) 0%,
+    rgba(0, 0, 0, 0.12) 45%,
+    rgba(4, 4, 8, 0.55) 100%
+  );
+}
+
+/* Continue-watching bar sits on the split between media and copy */
+.card--elite-float .card__progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--elite-media-fr, 0.65) * 100% - 3px);
+  z-index: 9;
+}
+
+.card--elite-active.card--elite-float.card--elite-float--instant {
+  transition: none;
+}
+
+.card--elite-active.card--elite-float.is-keyboard-focus,
+.card--elite-active.card--elite-float:hover {
+  z-index: 60;
 }
 
 .card--static-tile:hover,
@@ -1624,10 +1727,28 @@ button {
     transform 0.34s var(--elite-ease);
 }
 
+.card--elite-float .card__elite {
+  grid-column: 1;
+  grid-row: 2;
+  position: relative;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  align-self: stretch;
+  min-height: 0;
+  justify-content: stretch;
+  transform: translateY(0);
+}
+
 .card--elite-active .card__elite {
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
+}
+
+.card--elite-active.card--elite-float .card__elite {
+  transform: translateY(0);
 }
 
 .card__elite-gradient {
@@ -1644,13 +1765,17 @@ button {
 
 .card__elite-body {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
   padding: 10px 10px 12px;
   z-index: 2;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 .card__elite-title {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 0.78rem;
   font-weight: 700;
   line-height: 1.25;
@@ -1666,7 +1791,7 @@ button {
 }
 
 .card__elite-desc {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 0.62rem;
   line-height: 1.35;
   color: rgba(255, 255, 255, 0.78);
@@ -1677,7 +1802,7 @@ button {
 }
 
 .card__elite-meta {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 0.58rem;
   color: rgba(255, 255, 255, 0.58);
   display: flex;
@@ -1698,7 +1823,57 @@ button {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.card--elite-float .card__elite-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 12px 14px 14px;
+}
+
+.card--elite-float .card__elite-title {
+  font-size: clamp(0.92rem, 1.8vw, 1.15rem);
+}
+
+.card--elite-float .card__elite-meta {
+  font-size: 0.72rem;
+}
+
+.card--elite-float .card__elite-desc {
+  font-size: clamp(0.68rem, 1.2vw, 0.8rem);
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.card--elite-float .card__elite-actions {
+  margin-top: 7px;
+}
+
+.card--elite-float .card__round-btn {
+  width: 42px;
+  height: 42px;
+}
+
+.card--elite-float .card__pill-btn {
+  font-size: 0.7rem;
+  padding: 7px 10px;
+}
+
+.card--elite-float .card__elite-gradient {
+  background: linear-gradient(
+    180deg,
+    rgba(11, 11, 15, 0.97) 0%,
+    rgba(11, 11, 15, 0.98) 40%,
+    rgba(8, 8, 12, 1) 100%
+  );
+}
+
+.card--elite-float .card__elite {
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .card__round-btn {

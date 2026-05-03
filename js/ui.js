@@ -343,7 +343,7 @@ export function updateHeroWatchlistButton(profileId, movieId) {
 }
 
 /** Delay before expanding card + showing preview (ms). Exported for tuning / tests. */
-export const CARD_PREVIEW_HOVER_DELAY_MS = 380;
+export const CARD_PREVIEW_HOVER_DELAY_MS = 220;
 
 /** @type {Map<number, string>|null} */
 let genreNameById = null;
@@ -353,6 +353,116 @@ const elitePreviewState = {
   activeCard: null,
   abort: null,
 };
+
+/**
+ * Mini–hero preview size ≈ 30% of hero banner width (clamped), 2:3 aspect.
+ * @param {{ left: number, top: number, width: number, height: number }} anchor
+ */
+function computeEliteFloatMetrics(anchor) {
+  const margin = 14;
+  const navEl = document.getElementById("nav");
+  const navH = navEl?.offsetHeight ?? 72;
+  const heroEl = document.getElementById("hero");
+  const refW = heroEl?.offsetWidth ?? window.innerWidth;
+
+  let w = Math.round(refW * 0.3);
+  w = Math.max(268, Math.min(w, Math.min(580, window.innerWidth - 2 * margin)));
+
+  let h = Math.round((w * 3) / 2);
+  const maxH = window.innerHeight - navH - margin * 2;
+  if (h > maxH) {
+    h = Math.floor(maxH);
+    w = Math.round((h * 2) / 3);
+  }
+
+  const cx = anchor.left + anchor.width / 2;
+  const cy = anchor.top + anchor.height / 2 - anchor.height * 0.07;
+
+  let left = Math.round(cx - w / 2);
+  let top = Math.round(cy - h / 2);
+
+  top = Math.max(navH + margin, Math.min(top, window.innerHeight - h - margin));
+  left = Math.max(margin, Math.min(left, window.innerWidth - w - margin));
+
+  return { left, top, w, h };
+}
+
+function applyEliteFloatVars(card, box) {
+  card.style.setProperty("--elite-float-left", `${box.left}px`);
+  card.style.setProperty("--elite-float-top", `${box.top}px`);
+  card.style.setProperty("--elite-float-w", `${box.w}px`);
+  card.style.setProperty("--elite-float-h", `${box.h}px`);
+}
+
+function teardownEliteFloat(card) {
+  if (!card) return;
+  const ls = card.__eliteFloatListeners;
+  if (ls) {
+    ls.track?.removeEventListener("scroll", ls.onScroll);
+    window.removeEventListener("resize", ls.onResize);
+    delete card.__eliteFloatListeners;
+  }
+  const slot = card.__eliteSlotEl;
+  if (slot?.parentNode) slot.parentNode.removeChild(slot);
+  delete card.__eliteSlotEl;
+  card.classList.remove("card--elite-float", "card--elite-float--instant");
+  card.style.removeProperty("--elite-float-left");
+  card.style.removeProperty("--elite-float-top");
+  card.style.removeProperty("--elite-float-w");
+  card.style.removeProperty("--elite-float-h");
+}
+
+/**
+ * Fixed-position expansion (~30% hero width) + flex slot so the row does not reflow.
+ * @param {HTMLElement} card
+ * @param {{ reduced?: boolean }} opts
+ */
+function mountEliteFloat(card, { reduced = false } = {}) {
+  if (card.classList.contains("card--static-tile")) return;
+
+  const parent = card.parentNode;
+  if (!parent) return;
+
+  const rect = card.getBoundingClientRect();
+  card.classList.add("card--elite-float");
+  if (reduced) card.classList.add("card--elite-float--instant");
+
+  applyEliteFloatVars(card, {
+    left: Math.round(rect.left),
+    top: Math.round(rect.top),
+    w: Math.round(rect.width),
+    h: Math.round(rect.height),
+  });
+
+  const slot = document.createElement("div");
+  slot.className = "card-elite-slot";
+  slot.setAttribute("aria-hidden", "true");
+  slot.style.flexShrink = "0";
+  slot.style.width = `${Math.round(rect.width)}px`;
+  slot.style.height = `${Math.round(rect.height)}px`;
+  parent.insertBefore(slot, card);
+  card.__eliteSlotEl = slot;
+
+  const runExpand = () => {
+    if (!card.classList.contains("card--elite-active") || !slot.isConnected) return;
+    const sr = slot.getBoundingClientRect();
+    applyEliteFloatVars(card, computeEliteFloatMetrics(sr));
+  };
+
+  const onScroll = () => window.requestAnimationFrame(runExpand);
+  const onResize = () => runExpand();
+
+  const track = card.closest(".row__track");
+  track?.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onResize, { passive: true });
+  card.__eliteFloatListeners = { track, onScroll, onResize };
+
+  if (reduced) {
+    runExpand();
+  } else {
+    requestAnimationFrame(() => requestAnimationFrame(runExpand));
+  }
+}
 
 async function ensureGenreNameMap(signal) {
   if (genreNameById) return genreNameById;
@@ -387,6 +497,7 @@ function clampOverviewText(text, max = 130) {
 }
 
 function clearElitePreviewLayers(card) {
+  teardownEliteFloat(card);
   const host = card.querySelector(".card__preview-video-host");
   if (host) host.innerHTML = "";
   const bd = card.querySelector(".card__preview-backdrop");
@@ -396,8 +507,8 @@ function clearElitePreviewLayers(card) {
   }
   const img = card.querySelector(".card__img");
   if (img) img.style.opacity = "";
-  const ph = card.querySelector(".card__placeholder");
-  if (ph) ph.style.opacity = "";
+  const placeholderEl = card.querySelector(".card__placeholder");
+  if (placeholderEl) placeholderEl.style.opacity = "";
   card.classList.remove("card--elite-active", "card--elite-no-trailer", "card--elite-poster-only");
   const dock = card.querySelector(".card__preview-dock");
   dock?.classList.remove("is-showing-backdrop");
@@ -453,6 +564,7 @@ export function scheduleHoverPreview(card, movieId, fetchKey) {
     requestAnimationFrame(() => {
       if (elitePreviewState.activeCard !== card || session.signal.aborted) return;
       card.classList.add("card--elite-active");
+      mountEliteFloat(card, { reduced });
     });
 
     const host = card.querySelector(".card__preview-video-host");
@@ -693,7 +805,6 @@ export function createCard(movie, profileId, handlers, variant = "default", extr
       <div class="card__elite-gradient" aria-hidden="true"></div>
       <div class="card__elite-body">
         <p class="card__elite-title">${titleHtml}</p>
-        <p class="card__elite-desc">${escapeHtml(descText)}</p>
         <div class="card__elite-meta">
           <span class="card__elite-meta-item">${escapeHtml(year)}</span>
           <span class="card__elite-meta-sep" aria-hidden="true">·</span>
@@ -701,6 +812,7 @@ export function createCard(movie, profileId, handlers, variant = "default", extr
           <span class="card__elite-meta-sep card__elite-genre-sep" hidden aria-hidden="true">·</span>
           <span class="card__elite-genres"></span>
         </div>
+        <p class="card__elite-desc">${escapeHtml(descText)}</p>
         <div class="card__elite-actions">
           ${actionsRow}
         </div>

@@ -1228,6 +1228,21 @@ button {
   }
 }
 
+.row--enter {
+  animation: rowEnter 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes rowEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .row__head {
   display: flex;
   align-items: baseline;

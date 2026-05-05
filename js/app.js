@@ -578,9 +578,28 @@ function applyWatchlistSync(changedMovieId) {
 function patchWatchlistRow() {
   const root = document.getElementById("content-root");
   const oldRow = root?.querySelector('section.row[data-row-id="watchlist"]');
-  if (!root || !oldRow) return;
   const next = buildWatchlistRowSection();
-  oldRow.replaceWith(next);
+  if (!root) return;
+
+  // If watchlist is now empty, remove the entire section.
+  if (!next) {
+    oldRow?.remove();
+    return;
+  }
+
+  // If we already have a row, replace in place.
+  if (oldRow) {
+    oldRow.replaceWith(next);
+  } else {
+    // Otherwise insert it near the top (after Continue Watching, if present).
+    const cont = root.querySelector('section.row[data-row-id="continue"]');
+    if (cont && cont.nextSibling) root.insertBefore(next, cont.nextSibling);
+    else if (cont) root.appendChild(next);
+    else root.insertBefore(next, root.firstChild);
+    next.classList.add("row--enter");
+    window.setTimeout(() => next.classList.remove("row--enter"), 420);
+  }
+
   next.classList.add("row--flash");
   window.requestAnimationFrame(() => {
     next.classList.remove("row--flash");

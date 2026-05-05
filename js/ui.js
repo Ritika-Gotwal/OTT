@@ -1274,6 +1274,8 @@ export function createContentRow({
         ? (movies || []).map((m) => normalizeMovie(m)).filter(Boolean)
         : filterPresentableMovies(movies);
     if (!list.length) {
+      // Premium watchlist UX: if empty, render nothing at all.
+      if (id === "watchlist") return null;
       const empty = document.createElement("p");
       empty.className = "row--empty";
       empty.textContent = emptyMessage || "Nothing here yet.";
@@ -1294,21 +1296,20 @@ export function createContentRow({
 
 export function renderSkeletonPlaceholder(root) {
   const frag = document.createDocumentFragment();
-  ["continue", "watchlist", "trending", "top", "popular"].forEach((rid) => {
+  // Watchlist is intentionally omitted from skeleton: it should not occupy space when empty.
+  ["continue", "trending", "top", "popular"].forEach((rid) => {
     const row = createContentRow({
       id: rid,
       title:
         rid === "continue"
           ? "Continue Watching"
-          : rid === "watchlist"
-            ? "My Watchlist"
-            : rid === "trending"
-              ? "Trending"
-              : rid === "top"
-                ? "Top Rated"
-                : rid === "popular"
-                  ? "Popular"
-                  : "My Watchlist",
+          : rid === "trending"
+            ? "Trending"
+            : rid === "top"
+              ? "Top Rated"
+              : rid === "popular"
+                ? "Popular"
+                : "Trending",
       movies: [],
       skeleton: true,
       handlers: {},
